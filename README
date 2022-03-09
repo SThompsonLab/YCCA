@@ -1,4 +1,4 @@
-Welcome to the Microcytometry workflow developed by Jason Needham out of the University of Alabama at Birmingham (2020-21)
+Welcome to the Yeast Cell Cycle Analyzer (YCCA) workflow developed by Jason Needham out of the University of Alabama at Birmingham (2021-22)
 
 You can begin by sourcing 'microcyte.R' from within the main microcyte folder, which will allow you to run all the steps without individually sourcing the various scripts below. Before this, however, be sure to read about how these scripts work below so that you are using them correctly.
 
@@ -15,19 +15,9 @@ Steps to use this package:
 
 3c) *Run 3_reName.R* This takes the image numbering system and renames them to be human-readable targets as specificed in the schema file.
 
-4) *Run 4_YggData_multi ImageJ macro* This extracts both nuclear-dependent data and nuclear-independent data from the images by iterating through every image file in the 'files' directory (so long as it uses the MicroCyte file structure). By editing the macro in imageJ, you can alter the default size and intensity thresholds for 'dna' as well as pick your own parameters for whatever fluorescent target you're using based on the the image name. Its highly recommended that you verify these thresholds are correct for a couple sample images prior to running.
+4) *Run 4_YeastTakes ImageJ macro* This extracts both DNA data and brightfield and/or ConA data from the images by iterating through every image file in the 'files' directory (so long as it uses the MicroCyte file structure). By editing the macro in imageJ, you can alter the default size and intensity thresholds for 'dna', ConA, and brightfield. Its highly recommended that you verify these thresholds are correct for a couple sample images prior to running.
 
-5) *Run 5_imagen.R* This will combine the nuclear-dependent and nuclear-indendent data from each image into two datasets. One is a detailed list of each ROI in the Nucear-independent data, and the other is a detailed list of the Nuclear-dependent data with average data for the associated Nuclear-Indenpendent data. Nearest neighbor calculations are used to assign ROIs to specific nuclei.
-
-6) *Run 6_concato.R* This will combine the individual image data within each condition into a single nuclear-dependent datasetand a nuclear-independent dataset. By default, all images pertaining to a single condition will be have its various extraction lower-quartile normalized to minimize and inter-image variation, but this parameter can be made 'FALSE'.
-
-7) *Run 7_unite.R* This combines the individual conditions into a single nuclear-dependent datasetand a nuclear-independent dataset stored within the 'data' directory. Files can be united respective to a certain variable (ex, infected vs uninfected) or completely.
-
-8) *Analyze data using SirMixaplot.R functions in Rstudio -OR- any Flow Cytometry software that will take a csv input.*
-8a) SirMixaPlot - This is a series of automated R scripts to analyze and present data
-8b) cap_ifa - This is a series of scripts to automatically call virally-infected plaques
-8c) explore - This generates summary list from a dataset based on the schema file and user-selected categories
-8d) icellate - This generates cropped images of specific cells within the images. Those cells can be individual cell numbers, or a list of cells. Line analyses are also generated centered on the middle of the nucleus (default 2 along the x and y axes, but if >2 are requested then the lines are run radially through the center of the cell).
+5) *Run 5_Bud.R* This will combine the dna roi's with the ConA/brightfield rois and generate the log2 transformed DNA and radii ratios required to graph gate cell cycle populations. From this dataset, the data can be explored with the bud_explore() to generate a summary csv.
 
 I hope this makes your life easier and generates lots of data!
 
