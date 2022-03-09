@@ -1,5 +1,7 @@
 Welcome to the Yeast Cell Cycle Analyzer (YCCA) workflow developed by Jason Needham out of the University of Alabama at Birmingham (2021-22)
 
+![Image of YCCA flowthrough](https://github.com/SThompsonLab/YCCA/blob/main/bin/models/ycca.png)
+
 You can begin by sourcing 'microcyte.R' from within the main microcyte folder, which will allow you to run all the steps without individually sourcing the various scripts below. Before this, however, be sure to read about how these scripts work below so that you are using them correctly.
 
 Steps to use this package:
