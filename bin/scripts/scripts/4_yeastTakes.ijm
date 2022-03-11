@@ -9,7 +9,7 @@ nucleusSize="5-infinity";
 dnaMinThreshold="35";
 
 conaExtract=true;
-conaSize="10-infinity";
+conaSize="10-140";
 conaMinThreshold="40";
 conaCirc = "0.1";
 
