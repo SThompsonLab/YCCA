@@ -113,78 +113,6 @@ budCat <- function(unite = T){
 
 #------------------------------------------------------------
 
-sell_cycles <- function(df = cells,
-                        output_file = "data/cells_ycca.csv",
-                        size_only = F,
-                        re_graph = F,
-                        re_graph_nulls = F,
-                        G1_threshold = 1.15,
-                        G2_threshold = 1.35,
-                        max_distance = 100){
-  draft <- ggplot(data = df, aes(x = radRat))+
-    geom_density()
-  print(draft+geom_vline(xintercept = G1_threshold, color = "red", linetype = 2, size = 2)+
-          scale_x_continuous(breaks = c(0, 0.5, 1, 1.25, 1.5, 1.75, 2)))
-  G1_check <- readline(prompt = paste0("Using ", G1_threshold, " as G1 threshold. Good? (Y/n): "))
-  if (G1_check == "n"){
-    G1_threshold <- as.numeric(readline(prompt = "What should the G1 threshold be: "))
-    print(draft+geom_vline(xintercept = G1_threshold)+
-            scale_x_continuous(breaks = c(0, 0.5, 1, 1.25, 1.5, 1.75, 2)))
-    print(paste0("Using ", G1_threshold, " as G1 threshold..."))
-  }
-  df$state <- "G1"
-  df[df$radRat > G1_threshold,]$state <- "not_G1"
-  if (!"dna_rois" %in% names(df)){
-    print("Not using DAPI files for cell cycle state...")
-    print(draft+geom_vline(xintercept = G2_threshold, color = "red", linetype = 2, size = 2))
-    G2_check <- readline(prompt = paste0("Using ", G2_threshold, " as G2 threshold. Good? (Y/n): "))
-    if (G2_check == "n"){
-      G2_threshold <- as.numeric(readline(prompt = "What should the threshold be: "))
-      print(draft+geom_vline(xintercept = G2_threshold))
-      print(paste0("Using ", G1_threshold, " as G2 threshold..."))
-    }
-    df[df$state != "G1" & df$radRat < G2_threshold,]$state <- "S"
-    df[df$state != "G1" & df$radRat >= G2_threshold,]$state <- "G2"
-  } else{
-    df[df$state != "G1",]$state <- "S"
-    df[df$state == "S" & df$dna_rois == 2,]$state <- "G2/M"
-    if(nrow(df[df$dna_rois==0,]) > 0){
-      df[df$dna_rois == 0,]$state <- "UNK"
-    }
-  }
-  write.csv(df, output_file, row.names = F)
-  
-  if (re_graph){
-    setwd("figures/")
-    if (!"reMaps" %in% list.files()){
-      dir.create("reMaps")
-    }
-    setwd("reMaps")
-    for (fileType in unique(df$file)){
-      if (!fileType %in% list.files()){
-        dir.create(fileType)
-      }
-      setwd(fileType)
-      for (image_number in unique(df$image)){
-        if (re_graph_nulls){
-          draft <- ggplot(data = df[df$image == image_number & df$file == fileType,], aes(x = XM, y = -YM, color = state))+
-            geom_point(size = 2)+xlab("X position")+ylab("Y position")+theme_classic2()+
-            theme(legend.position = "top")
-        } else {
-          draft <- ggplot(data = subset(df[df$image == image_number & df$file == fileType,], state != "UNK"), aes(x = XM, y = -YM, color = state))+
-            geom_point(size = 2)+xlab("X position")+ylab("Y position")+theme_classic2()+
-            theme(legend.position = "top")
-        }
-        print(draft)
-        print(image_number)
-        ggsave(paste0(image_number, ".png"), dpi = 300)
-      }
-      setwd("../")
-    }
-    setwd("../../")
-  }
-}
-
 bud_explore <- function(df = cells,
                         ind_image = T,
                         output_file = "data/explored.csv"){
@@ -250,12 +178,3 @@ bud_explore <- function(df = cells,
     write_csv(expl, output_file)
   }
 }
-
-print("Combining image datasets now...")
-bud()
-print("Combining sample datasets now...")
-budCat()
-print("Datasets combined. Sourcing sirmixaplot for graphing.")
-source("bin/scripts/analysis/SirMixaPlot.R")
-print("Please gate populations and then run bud_explore()")
-sirmixaplot("data/cells.csv")

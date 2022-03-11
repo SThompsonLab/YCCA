@@ -57,9 +57,17 @@ while (TRUE) {
 # Runs Imagen and starts a finish chain
     print("Running Bud et al now...")
     source("bin/scripts/scripts/5_budd.R")
-    print("Datasets combined.")
-    contun <- readline(prompt = "Would you like to now run concato (Y/n)? ")
+
+    print("Combining image datasets now...")
+    bud()
+    print("Combining sample datasets now...")
+    budCat()
+    print("Datasets combined. Sourcing sirmixaplot for graphing.")
+    source("bin/scripts/analysis/SirMixaPlot.R")
     
+    print("Please gate populations and then run bud_explore()")
+    sirmixaplot("data/cells.csv")
+
   } else if (option == "5"){
     source("bin/scripts/scripts/3_reName.R")
     reset_names()

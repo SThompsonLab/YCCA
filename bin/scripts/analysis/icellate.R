@@ -5,15 +5,15 @@ suppressPackageStartupMessages(library(tidyr))
 
 icellate <- function(targetCells,
                      folderName = "singleCells",
-                     dMultiplier = 0.3,
-                     verifySize = T,
+                     dMultiplier = 3,
+                     verifySize = F,
                      fuse = F,
                      verifyImage = "overlay.png",
                      randomize = F,
                      samplingNumber = 5,
-                     lineAnalyses = T,
+                     lineAnalyses = F,
                      numberOfLines = 2,
-                     lineGraphs = T,
+                     lineGraphs = F,
                      initialAngle = 0,
                      randomSamplerDenom = 10){
   #Set a parameter to allow size verification
@@ -44,7 +44,7 @@ icellate <- function(targetCells,
     targetImage <- unique(targetCell$image)
     
     # With this, we can make a special folder for JUST THIS CELL
-    cellIdDir <- paste0(targetNameID, "-", unique(targetCell$Number))
+    cellIdDir <- paste0(targetNameID, "-", unique(targetCell$CellID))
     if (!cellIdDir %in% list.files()){
       dir.create(cellIdDir)
       setwd(cellIdDir)
@@ -61,19 +61,20 @@ icellate <- function(targetCells,
         while (TRUE){
           interim <- load.image(verifyImage)
           interim <- as.data.frame(interim)
+          # print("Image loaded")
           
           #First, lets figure out how big the area of the picture needs to be based on the imageType parameter
-          areaName <- names(cells)[grepl("^Area_NUC", names(targetCell))]
+          areaName <- "Area"
           cellLength <- dMultiplier*round(sqrt(targetCell[areaName]/pi))
           cellLength <- as.integer(round(cellLength))
           
           # Now we identify the XY coordinate of the cell and trim the dataframe data to fit the calculated cellLength
-          XName <- names(cells)[grepl("^X_NUC", names(targetCell))]
+          XName <- "X"
           XPos <- as.integer(round(targetCell[XName]))
           XMin <- round(XPos-cellLength)
           XMax <- round(XPos+cellLength)
           
-          YName <- names(cells)[grepl("^Y_NUC", names(targetCell))]
+          YName <- "Y"
           YPos <- as.integer(round(targetCell[YName]))
           YMin <- round(YPos-cellLength)
           YMax <- round(YPos+cellLength)
@@ -106,26 +107,31 @@ icellate <- function(targetCells,
         interim_i <- load.image(i)
         # And convert it to a dataframe.
         interim <- as.data.frame(interim_i)
+        # print("Image loaded")
 
         #First, lets figure out how big the area of the picture needs to be based on the imageType parameter
-        areaName <- names(cells)[grepl("^Area_NUC", names(targetCell))]
+        areaName <- "Area"
         cellLength <- dMultiplier*round(sqrt(targetCell[areaName]/pi))
         cellLength <- as.integer(round(cellLength))
+        # print("Cell length obtained")
         
         # Now we identify the XY coordinate of the cell and trim the dataframe data to fit the calculated cellLength
-        XName <- names(cells)[grepl("^X_NUC", names(targetCell))]
+        XName <- "X"
         XPos <- as.integer(round(targetCell[XName]))
         XMin <- round(XPos-cellLength)
         XMax <- round(XPos+cellLength)
+        # print("X position obtained")
         
-        YName <- names(cells)[grepl("^Y_NUC", names(targetCell))]
+        YName <- "Y"
         YPos <- as.integer(round(targetCell[YName]))
         YMin <- round(YPos-cellLength)
         YMax <- round(YPos+cellLength)
+        # print("Y position obtained")
 
         # Now we remove all the pixels we don't care about
         interim <- interim[interim$x >= XMin & interim$x <= XMax,]
         interim <- interim[interim$y >= YMin & interim$y <= YMax,]
+        # print("Pixels reduced")
         
         # Now we save the new centroid positions for possible line analyses
         newXPos <- 1+XPos-min(interim$x)
@@ -135,10 +141,16 @@ icellate <- function(targetCells,
         interim$x <- 1+interim$x-min(interim$x)
         interim$y <- 1+interim$y-min(interim$y)
         
+        # print("Centroids found")
+        interim_now <<- interim
+        
         # Now to convert the dataframe to an image object and save the image
         newPlot <- suppressWarnings(as.cimg(interim))
+        # print("newPlot loaded")
         newPlot <- cimg2magick(newPlot, rotate = T)
+        # print("newPlot rotated")
         image_write(newPlot, path = i, format = "png")
+        # print("image saved")
         
         # If class averaging is called via the 'fuse' parameter AND the image is a square...
         if (fuse == T & max(interim$x) == max(interim$y)){
@@ -229,6 +241,8 @@ icellate <- function(targetCells,
                      totalCorrPixFraction = randomSamplerDenom)
       }
       setwd("../")
+    } else {
+      print(paste0("Image folder exists, skipping ", cellIdDir))
     }
   }
   if(fuse==T){

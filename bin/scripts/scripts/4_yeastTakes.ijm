@@ -27,28 +27,19 @@ roi_image = File.openDialog("Choose a File");
 input=getDirectory("current");
 parent=File.getParent(input);
 input=File.getParent(parent);
-input=File.getParent(input);
 
 pList=getFileList(input);
 for (i=0; i < pList.length; i++){
-	if(!endsWith(pList[i], ".ijm")){
+	if(!endsWith(pList[i], ".csv")){
 		dList=getFileList(input+"/"+pList[i]);
-		print(pList[i]);
 		for (j=0; j < dList.length; j++){
+		if(!endsWith(dList[j], ".csv")){
 			pathway = input+"/"+pList[i]+"/"+dList[j];
+			pathway2 = pathway+"/PNGS";
 			iList = getFileList(pathway);
 			if(!File.isDirectory(pathway+"/csvs")){
 				File.makeDirectory(pathway+"/csvs");
 			};
-			print(dList[j]);
-			if(File.exists(pathway+"/dna.jpg")){
-				suffx = ".jpg";
-				print("jpg");
-			}; else{
-				suffx = ".tif";
-				print("tif");
-			};
-		
 			inputc = pathway+"/csvs/";
 //			open(pathway+"/bf.png");
 //			run("Enhance Contrast...", "saturated="+yeastContrast);
@@ -69,7 +60,7 @@ for (i=0; i < pList.length; i++){
 //			run("Clear Results");
 			
 			if(conaExtract){
-				roi_image = pathway+"/"+"cona"+suffx;
+				roi_image = pathway2+"/cona.png";
 				open(roi_image);
 				run("8-bit");
 				setAutoThreshold("Default dark");
@@ -94,7 +85,7 @@ for (i=0; i < pList.length; i++){
 		//Now that the nuclear data is collected, Ygg will collected the nuclear indepedent data
 		//Since the list of images will be the same, it simply iterates through each image and collects the total ROI pixel data
 			if(dapiExtract){
-				open(pathway+"/dna"+suffx);
+				open(pathway2+"/dna.png");
 				run("8-bit");
 		// Change this for deviations from default
 				setAutoThreshold("Default dark");
@@ -105,7 +96,7 @@ for (i=0; i < pList.length; i++){
 				run("Watershed");
 				run("Analyze Particles...", "size="+nucleusSize+" pixel add include exclude");
 				close();
-				open(pathway+"/dna"+suffx);
+				open(pathway2+"/dna.png");
 				roiManager("measure");
 				saveAs("Results", inputc+"dna.csv");
 				roiManager("Delete");
@@ -114,6 +105,7 @@ for (i=0; i < pList.length; i++){
 				run("Close");
 				close();
 			};
+		};
 		};
 	};
 };
