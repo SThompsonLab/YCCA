@@ -3,6 +3,7 @@ library(ggpubr)
 
 bud <- function(shape_file = "cona",
                 max_distance = 20) {
+  schema <- read_csv("schema.csv")
   setwd("files/")
   file_list <- list.files()
   file_list <- file_list[!grepl(".csv", file_list)]
@@ -60,8 +61,13 @@ bud <- function(shape_file = "cona",
         print("DNA folder not detected, defaulting to size for cell cycle state...")
       }
       
+      cells$log2_dna <- log(cells$mean_dna_intDen, 2)
       cells$image <- j
       cells$file <- image_set
+      mData <- schema[schema$name_id == unique(cells$file),]
+      for (mDatum in names(mData)[6:ncol(mData)]){
+        cells[mDatum] <- mData[mDatum]
+      }
       setwd("../")
       write.csv(cells, paste0(j, ".csv"), row.names = F)
       setwd("../")
@@ -113,9 +119,82 @@ budCat <- function(unite = T){
 
 #------------------------------------------------------------
 
+sell_cycles <- function(df = cells,
+                        output_file = "data/cells_ycca.csv",
+                        size_only = F,
+                        re_graph = F,
+                        re_graph_nulls = F,
+                        G1_threshold = 1.15,
+                        G2_threshold = 1.35,
+                        max_distance = 100){
+  draft <- ggplot(data = df, aes(x = radRat))+
+    geom_density()
+  print(draft+geom_vline(xintercept = G1_threshold, color = "red", linetype = 2, size = 2)+
+          scale_x_continuous(breaks = c(0, 0.5, 1, 1.25, 1.5, 1.75, 2)))
+  G1_check <- readline(prompt = paste0("Using ", G1_threshold, " as G1 threshold. Good? (Y/n): "))
+  if (G1_check == "n"){
+    G1_threshold <- as.numeric(readline(prompt = "What should the G1 threshold be: "))
+    print(draft+geom_vline(xintercept = G1_threshold)+
+            scale_x_continuous(breaks = c(0, 0.5, 1, 1.25, 1.5, 1.75, 2)))
+    print(paste0("Using ", G1_threshold, " as G1 threshold..."))
+  }
+  df$state <- "G1"
+  df[df$radRat > G1_threshold,]$state <- "not_G1"
+  if (!"dna_rois" %in% names(df)){
+    print("Not using DAPI files for cell cycle state...")
+    print(draft+geom_vline(xintercept = G2_threshold, color = "red", linetype = 2, size = 2))
+    G2_check <- readline(prompt = paste0("Using ", G2_threshold, " as G2 threshold. Good? (Y/n): "))
+    if (G2_check == "n"){
+      G2_threshold <- as.numeric(readline(prompt = "What should the threshold be: "))
+      print(draft+geom_vline(xintercept = G2_threshold))
+      print(paste0("Using ", G1_threshold, " as G2 threshold..."))
+    }
+    df[df$state != "G1" & df$radRat < G2_threshold,]$state <- "S"
+    df[df$state != "G1" & df$radRat >= G2_threshold,]$state <- "G2"
+  } else{
+    df[df$state != "G1",]$state <- "S"
+    df[df$state == "S" & df$dna_rois == 2,]$state <- "G2/M"
+    if(nrow(df[df$dna_rois==0,]) > 0){
+      df[df$dna_rois == 0,]$state <- "UNK"
+    }
+  }
+  write.csv(df, output_file, row.names = F)
+  
+  if (re_graph){
+    setwd("figures/")
+    if (!"reMaps" %in% list.files()){
+      dir.create("reMaps")
+    }
+    setwd("reMaps")
+    for (fileType in unique(df$file)){
+      if (!fileType %in% list.files()){
+        dir.create(fileType)
+      }
+      setwd(fileType)
+      for (image_number in unique(df$image)){
+        if (re_graph_nulls){
+          draft <- ggplot(data = df[df$image == image_number & df$file == fileType,], aes(x = XM, y = -YM, color = state))+
+            geom_point(size = 2)+xlab("X position")+ylab("Y position")+theme_classic2()+
+            theme(legend.position = "top")
+        } else {
+          draft <- ggplot(data = subset(df[df$image == image_number & df$file == fileType,], state != "UNK"), aes(x = XM, y = -YM, color = state))+
+            geom_point(size = 2)+xlab("X position")+ylab("Y position")+theme_classic2()+
+            theme(legend.position = "top")
+        }
+        print(draft)
+        print(image_number)
+        ggsave(paste0(image_number, ".png"), dpi = 300)
+      }
+      setwd("../")
+    }
+    setwd("../../")
+  }
+}
+
 bud_explore <- function(df = cells,
                         ind_image = T,
                         output_file = "data/explored.csv"){
+  scheme <- read_csv("schema.csv")
   johnny <- df
   if (ind_image){
     johnny$target <- johnny$file
@@ -123,6 +202,12 @@ bud_explore <- function(df = cells,
   }
   for (i in unique(johnny$file)){
     interim <- subset(johnny, file == i)
+    if(!ind_image){
+      mData <- scheme[scheme$name_id == i,]
+    } else {
+      mData <- scheme[scheme$name_id == unique(interim$target),]
+    }
+    
     if (!exists("expl")){
       expl <- data.frame("File" = i,
                          "Total" = nrow(interim),
@@ -135,10 +220,13 @@ bud_explore <- function(df = cells,
                          "Mean_DNA_Int" = mean(interim$mean_dna_intDen),
                          "Mean_DNA_IntDens" = mean(interim$total_dna_intDen),
                          "G0/G1" = 100*nrow(interim[interim$state == "G1",])/nrow(interim),
-                         "S" = 100*nrow(interim[interim$state == "S",])/nrow(interim),
-                         "G2" = 100*nrow(interim[interim$state == "G2",])/nrow(interim),
+                         "S/G2" = 100*nrow(interim[interim$state == "S/G2",])/nrow(interim),
+                         "G2/M" = 100*nrow(interim[interim$state == "G2/M",])/nrow(interim),
                          "Mitosis" = 100*nrow(interim[interim$state == "M",])/nrow(interim),
                          "UNK" = 100*nrow(interim[interim$state == "UNK",])/nrow(interim))
+      for (mDatum in names(mData)[7:ncol(mData)-1]){
+        expl[mDatum] <- mData[,mDatum]
+      }
       if(ind_image){
         expl$target <- unique(interim$target)
       }
@@ -154,10 +242,13 @@ bud_explore <- function(df = cells,
                          "Mean_DNA_Int" = mean(interim$mean_dna_intDen),
                          "Mean_DNA_IntDens" = mean(interim$total_dna_intDen),
                          "G0/G1" = 100*nrow(interim[interim$state == "G1",])/nrow(interim),
-                         "S" = 100*nrow(interim[interim$state == "S",])/nrow(interim),
-                         "G2" = 100*nrow(interim[interim$state == "G2",])/nrow(interim),
+                         "S/G2" = 100*nrow(interim[interim$state == "S/G2",])/nrow(interim),
+                         "G2/M" = 100*nrow(interim[interim$state == "G2/M",])/nrow(interim),
                          "Mitosis" = 100*nrow(interim[interim$state == "M",])/nrow(interim),
                          "UNK" = 100*nrow(interim[interim$state == "UNK",])/nrow(interim))
+      for (mDatum in names(mData)[7:ncol(mData)-1]){
+        tick[mDatum] <- mData[,mDatum]
+      }
       if(ind_image){
         tick$target <- unique(interim$target)
       }

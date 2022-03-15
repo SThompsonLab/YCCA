@@ -66,7 +66,9 @@ while (TRUE) {
     source("bin/scripts/analysis/SirMixaPlot.R")
     
     print("Please gate populations and then run bud_explore()")
-    sirmixaplot("data/cells.csv")
+    sirmixaplot("data/cells.csv", run = F, adjust = F)
+    cells$state <- "UNK"
+    break
 
   } else if (option == "5"){
     source("bin/scripts/scripts/3_reName.R")

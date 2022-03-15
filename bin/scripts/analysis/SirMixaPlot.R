@@ -121,32 +121,11 @@ sirmixaplot <- function(filo,
     cat("\n")
     thingee <<- paste0(substr(thingee, 1, nchar(thingee)-4), "_cells.csv")
     cat(paste(thingee, "created."))
-    for (i in 1:ncol(cells)){
-      if (grepl("Mean_", names(cells)[i])){
-        cells[paste0("I", names(cells)[i])] <<- cells[,i]*cells$Area
-      }
-    }
-    cells$log2_dna <<- log(cells$IntDen_NUC_dna, 2)
-    for (i in 1:ncol(cells)){
-      if (grepl("Mean_", names(cells)[i])){
-        cells[paste0("L", names(cells)[i])] <<- log(cells[,i], 10)
-      }
-    }
   }
   
   #writes the file
   write.csv(cells, file = thingee, row.names = FALSE)
   cat("\n")
-  
-  #Checks that some size correctiong has occured and begins making the graph
-  if(run==TRUE){
-    if(TRUE %in% str_detect(names(cells), "ALIMean_.")){
-      joiner(cells)
-    } else if(adjust==TRUE){
-      joiner(cells)
-      gate()
-    }
-  }
 }
 
 #----------------------------------------------------------------------------------

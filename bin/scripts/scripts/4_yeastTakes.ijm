@@ -9,7 +9,7 @@ nucleusSize="5-infinity";
 dnaMinThreshold="35";
 
 conaExtract=true;
-conaSize="10-140";
+conaSize="10-200";
 conaMinThreshold="40";
 conaCirc = "0.1";
 
@@ -27,9 +27,13 @@ roi_image = File.openDialog("Choose a File");
 input=getDirectory("current");
 parent=File.getParent(input);
 input=File.getParent(parent);
+input=File.getParent(input);
+
+print(input);
 
 pList=getFileList(input);
 for (i=0; i < pList.length; i++){
+	print(pList[i]);
 	if(!endsWith(pList[i], ".csv")){
 		dList=getFileList(input+"/"+pList[i]);
 		for (j=0; j < dList.length; j++){
