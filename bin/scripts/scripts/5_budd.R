@@ -196,6 +196,7 @@ bud_explore <- function(df = cells,
                         output_file = "data/explored.csv"){
   scheme <- read_csv("schema.csv")
   johnny <- df
+  johnny$dna_rois <- as.numeric(johnny$dna_rois)
   if (ind_image){
     johnny$target <- johnny$file
     johnny$file <- paste0(johnny$target, "_", johnny$image)
@@ -268,4 +269,66 @@ bud_explore <- function(df = cells,
   } else {
     write_csv(expl, output_file)
   }
+}
+
+yeastCycleSelect <- function(df = cells,
+                             default_radRat = 1.05,
+                             default_log2dna = 10.5,
+                             save_file = "data/cells_cells.csv",
+                             explore = T,
+                             explore_file = "data/cells_explored.csv"){
+  df$deform <- F
+  df$ploidy <- "2N"
+  print("Gating on the radii deformation...")
+  okay <- "n"
+  iMag <- ggplot(data = df, aes(x = radRat))+
+    geom_density(aes(color = dna_rois))+
+    theme_classic2()
+  print(iMag+geom_vline(color = "red", size = 1, linetype = 2, xintercept = default_radRat))
+  print(paste0("Using a radii ratio threshold of: ", default_radRat))
+  okay <- readline(prompt = "Does this look good (Y/n)? ")
+  if (okay == "n"){
+    while(okay == "n"){
+      default_radRat <- as.numeric(readline(prompt = "What should the threshold be? "))
+      print(paste0("Using a radii ratio threshold of: ", default_radRat))
+      print(iMag+geom_vline(color = "red", size = 1, linetype = 2, xintercept = default_radRat))
+      okay <- readline(prompt = "Does this look good (Y/n)? ")
+    }
+  } else {
+    print(paste0("Using ", default_radRat, " as the threshold for radii deformations."))
+  }
+  df[df$radRat>default_radRat,]$deform <- T
+  cat("\n")
+  print("Gating on the DNA content now...")
+  okay <- "n"
+  iMag <- ggplot(data = df, aes(x = log2_dna))+
+    geom_density(aes(color = dna_rois))+
+    theme_classic2()
+  print(iMag+geom_vline(color = "red", size = 1, linetype = 2, xintercept = default_log2dna))
+  print(paste0("Using a ploidy threshold of: ", default_log2dna))
+  okay <- readline(prompt = "Does this look good (Y/n)? ")
+  if (okay == "n"){
+    while(okay == "n"){
+      default_log2dna <- as.numeric(readline(prompt = "What should the threshold be? "))
+      print(paste0("Using a ploidy threshold of: ", default_log2dna))
+      print(iMag+geom_vline(color = "red", size = 1, linetype = 2, xintercept = default_log2dna))
+      okay <- readline(prompt = "Does this look good (Y/n)? ")
+    }
+  } else {
+    print(paste0("Using ", default_log2dna, " as the threshold for DNA content."))
+  }
+  df[df$log2_dna > default_log2dna,]$ploidy <- "4N"
+  df$state <- "G1"
+  df[df$deform == F & df$ploidy == "4N",]$state <- "S/G2"
+  df[df$deform == T & df$ploidy == "4N",]$state <- "G2/M"
+  df[df$deform == T & df$ploidy == "2N",]$state <- "M"
+  write.csv(df, save_file, row.names = F)
+  if(explore==T){
+    bud_explore(df, ind_image = F, output_file = explore_file)
+  }
+}
+
+for (into in unique(cells$file)){
+  intert <- subset(cells, file == into)
+  yeastCycleSelect(df = intert, save_file = paste0("data/", into,".csv"))
 }
